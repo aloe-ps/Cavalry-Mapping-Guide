@@ -1,3 +1,45 @@
+function getDocUrl(item) {
+    const base = "https://cavalry.studio/docs/nodes/";
+    let name = item.name.trim();
+    let cat = item.cat;
+    
+    // ShapeやDuplicatorなどのコアオブジェクトの振り分け
+    if (name.includes("Shape")) {
+        if (name.includes("Text")) return base + "shapes/text-shape/";
+        if (name.includes("Path")) return base + "shapes/path/";
+        if (name.includes("Star") || name.includes("Polygon")) return base + "shapes/polygon/";
+        return base + "shapes/ellipse/"; // デフォルトフォールバック
+    }
+    if (name.includes("Duplicator")) {
+        return base + "shapes/duplicator/";
+    }
+    
+    // スラッグのクレンジング
+    let slug = name.toLowerCase()
+                    .replace(/[\s\-_]+/g, '-')     // スペースとハイフンを単一ハイフンに統合
+                    .replace(/[^a-z0-9\-]/g, '');  // 記号などを除外
+
+    // 特殊なURLマッピング定義
+    if (slug === "bevel") slug = "bevel";
+    else if (slug === "lattice-deformer") slug = "lattice";
+    else if (slug === "value-blend-value2-blend-value3-blend") slug = "value-blend";
+    else if (slug === "value-solver-value2-solver") slug = "value-solver";
+    else if (slug === "drop-shadow") slug = "drop-shadow";
+
+    let path = "behaviours/";
+    if (cat === "Deformer" || cat === "Behaviour") {
+        path = "behaviours/";
+    } else if (cat === "Filter") {
+        path = "effects/filters/";
+    } else if (cat === "Shader") {
+        path = "effects/shaders/";
+    } else if (cat === "Generator" || cat === "Shape") {
+        path = "shapes/";
+    }
+    
+    return base + path + slug + "/";
+}
+
 const fullDatabase = [
     // ================= DEFORMERS (10) =================
     { cat: 'Deformer', name: 'Bend Deformer', avi: '曲げる / 極座標変換', desc: '形状を円筒状または指定した角度の円弧に沿って曲げる。長方形を360度曲げて完全に真円のリングにすることも可能。' },
@@ -201,7 +243,9 @@ function runFilter() {
 
         filtered.forEach(item => {
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-amber-50/20 transition-all';
+            tr.className = 'hover:bg-amber-50/40 transition-all cursor-pointer group';
+            tr.title = "クリックで公式ドキュメントを表示";
+            tr.onclick = () => window.open(getDocUrl(item), '_blank');
 
             let badgeClass = '';
             if (item.cat === 'Deformer') badgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
@@ -215,7 +259,12 @@ function runFilter() {
                         ${item.cat}
                     </span>
                 </td>
-                <td class="px-6 py-4 font-bold text-slate-800">${item.name}</td>
+                <td class="px-6 py-4 font-bold text-slate-800 transition-colors group-hover:text-amber-700">
+                    <div class="flex items-center gap-1.5">
+                        <span>${item.name}</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                </td>
                 <td class="px-6 py-4 text-amber-700 font-medium">${item.avi}</td>
                 <td class="px-6 py-4 text-slate-600 text-xs leading-relaxed">${item.desc}</td>
             `;
@@ -372,7 +421,9 @@ function loadWorkflow(wfId) {
     data.nodes.forEach((node, i) => {
         const nodeBox = document.createElement('div');
         // node-pop is the custom pop-up animation, styled with inline delay
-        nodeBox.className = 'w-full sm:w-44 bg-white border border-slate-200 shadow-sm rounded-xl p-3.5 relative z-10 node-pop';
+        nodeBox.className = 'w-full sm:w-44 bg-white border border-slate-200 shadow-sm rounded-xl p-3.5 relative z-10 node-pop cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group';
+        nodeBox.title = `${node.name} の公式ドキュメントを開く`;
+        nodeBox.onclick = () => window.open(getDocUrl({ name: node.name, cat: node.type }), '_blank');
         nodeBox.style.animationDelay = `${i * 120}ms`; // Stagger effect
         
         let colorBar = 'bg-amber-500';
@@ -384,7 +435,10 @@ function loadWorkflow(wfId) {
         nodeBox.innerHTML = `
             <div class="h-1 w-full ${colorBar} rounded-t-lg -mt-3.5 -mx-3.5 mb-2.5"></div>
             <div class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">${node.type}</div>
-            <div class="font-extrabold text-slate-800 text-xs my-0.5">${node.name}</div>
+            <div class="font-extrabold text-slate-800 text-xs my-0.5 flex items-center justify-between group-hover:text-amber-700 transition-colors">
+                <span>${node.name}</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </div>
             <div class="text-[10px] text-slate-500 mt-1 leading-normal">${node.desc}</div>
         `;
         nodesWrapper.appendChild(nodeBox);
